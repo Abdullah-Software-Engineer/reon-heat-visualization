@@ -7,12 +7,25 @@ import type { RuntimeDataResponse, ApiError } from '../types/runtime-data.types'
 
 /**
  * Fetches runtime data from the API
+ * @param skipCache - If true, adds a cache-busting query parameter to ensure fresh data
  */
-export async function fetchRuntimeData(): Promise<RuntimeDataResponse> {
-  const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || '/runtime-data.json';
+export async function fetchRuntimeData(skipCache = true): Promise<RuntimeDataResponse> {
+  let apiEndpoint = import.meta.env.VITE_API_ENDPOINT || '/runtime-data.json';
+  
+  // Add cache-busting parameter to ensure we get fresh data
+  if (skipCache) {
+    const separator = apiEndpoint.includes('?') ? '&' : '?';
+    apiEndpoint = `${apiEndpoint}${separator}_t=${Date.now()}`;
+  }
   
   try {
-    const response = await fetch(apiEndpoint);
+    const response = await fetch(apiEndpoint, {
+      // Ensure we don't use cached responses
+      cache: skipCache ? 'no-cache' : 'default',
+      headers: {
+        'Cache-Control': skipCache ? 'no-cache' : 'default',
+      },
+    });
     
     if (!response.ok) {
       throw {

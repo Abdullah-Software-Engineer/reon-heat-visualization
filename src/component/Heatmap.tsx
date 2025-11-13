@@ -14,7 +14,7 @@ interface HeatmapProps {
 }
 
 const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
-  const { data, loading, error, refetch } = useRuntimeData();
+  const { data, loading, error, refetch, isPolling } = useRuntimeData();
   const chartRef = useRef<ReactECharts>(null);
 
   const allDates = useMemo(() => (data ? extractDates(data) : []), [data]);
@@ -110,9 +110,17 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
   return (
     <div className="w-full h-screen p-5">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-        <h1 className="m-0 text-xl font-medium text-white">
-          Runtime Report
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="m-0 text-xl font-medium text-white">
+            Runtime Report
+          </h1>
+          {isPolling && (
+            <div className="flex items-center gap-2 text-xs text-white/70" title="Real-time updates active">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span>Live</span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
             <label className="text-sm text-white">From:</label>

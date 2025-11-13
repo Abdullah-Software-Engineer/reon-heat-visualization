@@ -3,7 +3,7 @@
  * Central export point for all API-related functionality
  */
 
-export { runtimeDataService, RuntimeDataService } from './services/runtime-data.service';
+export { fetchRuntimeData } from './services/runtime-data.service';
 export type {
   RuntimeDataResponse,
   RuntimeDataPoint,

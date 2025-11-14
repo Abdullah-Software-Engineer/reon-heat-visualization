@@ -32,8 +32,8 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
     left: 'center',
     top: 'top',
     orient: 'horizontal' as const,
-    itemWidth: 20,
-    itemHeight: 14,
+    itemWidth: 10,
+    itemHeight: 10,
     itemGap: 15,
     textStyle: { color: '#333', fontSize: 12 },
     showLabel: true,
@@ -110,7 +110,7 @@ export const createChartOptions = (
     },
     grid: { 
       height: '70%', 
-      top: '15%', 
+      top: '8%', 
       left: '10%', 
       right: '10%' 
     },

@@ -41,6 +41,73 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
 };
 
 /**
+ * Creates smart tooltip positioning function that avoids blocking cells
+ */
+const createSmartTooltipPosition = () => {
+  return (
+    point: [number, number],
+    _params: any,
+    _dom: HTMLElement,
+    _rect: any,
+    size: { contentSize: [number, number]; viewSize: [number, number] }
+  ): [number, number] => {
+    const [x, y] = point;
+    const [contentWidth, contentHeight] = size.contentSize;
+    const [viewWidth, viewHeight] = size.viewSize;
+    
+    // Padding from the cursor to avoid tooltip blocking the cell
+    const cursorPadding = 10;
+    // Minimum space required for tooltip
+    const tooltipPadding = 15;
+    
+    // Calculate available space in each direction
+    const spaceTop = y;
+    const spaceBottom = viewHeight - y;
+    const spaceLeft = x;
+    const spaceRight = viewWidth - x;
+    
+    // Estimate tooltip dimensions (with some padding)
+    const tooltipWidth = contentWidth + tooltipPadding * 2;
+    const tooltipHeight = contentHeight + tooltipPadding * 2;
+    
+    // Determine best position based on available space and cursor position
+    // Priority: avoid blocking the cursor path to other cells
+    let posX: number;
+    let posY: number;
+    
+    // Horizontal positioning: prefer right side, fallback to left
+    if (spaceRight >= tooltipWidth + cursorPadding) {
+      // Position to the right of cursor
+      posX = x + cursorPadding;
+    } else if (spaceLeft >= tooltipWidth + cursorPadding) {
+      // Position to the left of cursor
+      posX = x - tooltipWidth - cursorPadding;
+    } else {
+      // Center horizontally if neither side has enough space
+      posX = Math.max(tooltipPadding, Math.min(viewWidth - tooltipWidth - tooltipPadding, x - tooltipWidth / 2));
+    }
+    
+    // Vertical positioning: prefer bottom, fallback to top
+    if (spaceBottom >= tooltipHeight + cursorPadding) {
+      // Position below cursor
+      posY = y + cursorPadding;
+    } else if (spaceTop >= tooltipHeight + cursorPadding) {
+      // Position above cursor
+      posY = y - tooltipHeight - cursorPadding;
+    } else {
+      // Center vertically if neither side has enough space
+      posY = Math.max(tooltipPadding, Math.min(viewHeight - tooltipHeight - tooltipPadding, y - tooltipHeight / 2));
+    }
+    
+    // Ensure tooltip stays within viewport bounds
+    posX = Math.max(tooltipPadding, Math.min(posX, viewWidth - tooltipWidth - tooltipPadding));
+    posY = Math.max(tooltipPadding, Math.min(posY, viewHeight - tooltipHeight - tooltipPadding));
+    
+    return [posX, posY];
+  };
+};
+
+/**
  * Creates tooltip formatter for heatmap chart
  */
 const createTooltipFormatter = (
@@ -97,7 +164,7 @@ export const createChartOptions = (
 
   return {
     tooltip: {
-      position: 'top' as const,
+      position: createSmartTooltipPosition() as any,
       backgroundColor: 'rgba(0,0,0,0.8)',
       borderColor: 'rgba(255,255,255,0.2)',
       borderWidth: 1,

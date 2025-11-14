@@ -10,6 +10,7 @@ import {
 import { createChartOptions } from '../utils';
 import DateRangePicker, { type DateRange } from './DateRangePicker';
 import DownloadButton from './DownloadButton';
+import Loader from './Loader';
 
 interface HeatmapProps {
   enableAnimation?: boolean;
@@ -103,11 +104,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
 
 
   if (loading) {
-    return (
-      <div className="w-full h-screen p-5 flex items-center justify-center">
-        <p className="text-gray-800">Loading data...</p>
-      </div>
-    );
+    return <Loader fullScreen message="Loading data..." />;
   }
 
   if (error) {

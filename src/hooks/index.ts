@@ -4,4 +4,5 @@
  */
 
 export * from './useRuntimeData';
+export * from './useClickOutside';
 

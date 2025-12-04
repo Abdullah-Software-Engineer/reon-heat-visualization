@@ -72,15 +72,29 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
       const csvRows: string[] = [];
       
       // CSV Header
-      csvRows.push('Date,Time,rtsources,sys_volt,batt_curr,batt_volt,rect_curr,load_curr');
+      csvRows.push('Date,Time,Source,Description,rtsources,sys_volt,batt_curr,batt_volt,rect_curr,load_curr');
       
       // Add data rows
       filteredDates.forEach((date) => {
         const entries = data.data[date];
         if (entries) {
           entries.forEach((entry) => {
+            // Find the source information based on rtsources value
+            const source = data.meta.sources.find((s) => s.value === entry.rtsources);
+            const sourceDisplay = source?.display ?? 'Unknown';
+            const sourceDesc = source?.desc ?? 'N/A';
+            
+            // Escape CSV values that might contain commas or quotes
+            const escapeCsv = (value: string | number): string => {
+              const str = String(value);
+              if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+              }
+              return str;
+            };
+            
             csvRows.push(
-              `${date},${entry.time},${entry.rtsources},${entry.sys_volt},${entry.batt_curr},${entry.batt_volt},${entry.rect_curr},${entry.load_curr}`
+              `${date},${entry.time},${escapeCsv(sourceDisplay)},${escapeCsv(sourceDesc)},${entry.rtsources},${entry.sys_volt},${entry.batt_curr},${entry.batt_volt},${entry.rect_curr},${entry.load_curr}`
             );
           });
         }

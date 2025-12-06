@@ -35,7 +35,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return saved !== null ? saved === 'true' : true;
   });
   const [tempDateRange, setTempDateRange] = useState<DateRange>(value);
+  const [dropdownPosition, setDropdownPosition] = useState<{ horizontal: string; vertical: string }>({
+    horizontal: 'left-0',
+    vertical: 'top-full',
+  });
   const pickerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(pickerRef, () => {
     if (isOpen) {
@@ -63,6 +68,66 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       setTempDateRange(value);
     }
   }, [isOpen, value]);
+
+  // Calculate dropdown position to stay within viewport
+  useEffect(() => {
+    if (isOpen && pickerRef.current) {
+      // Use requestAnimationFrame to ensure DOM is updated
+      const calculatePosition = () => {
+        if (!pickerRef.current || !dropdownRef.current) return;
+        
+        const pickerRect = pickerRef.current.getBoundingClientRect();
+        const dropdownRect = dropdownRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate horizontal position
+        let horizontal = 'left-0';
+        const spaceOnRight = viewportWidth - pickerRect.right;
+        const spaceOnLeft = pickerRect.left;
+        const dropdownWidth = dropdownRect.width || 300; // fallback to min-width
+        
+        if (spaceOnRight < dropdownWidth && spaceOnLeft > spaceOnRight) {
+          // Not enough space on right, align to right edge
+          horizontal = 'right-0';
+        } else if (pickerRect.left + dropdownWidth > viewportWidth) {
+          // Would overflow, align to right edge
+          horizontal = 'right-0';
+        }
+        
+        // Calculate vertical position
+        let vertical = 'top-full';
+        const spaceBelow = viewportHeight - pickerRect.bottom;
+        const spaceAbove = pickerRect.top;
+        const dropdownHeight = dropdownRect.height || 200; // estimated height
+        
+        if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+          // Not enough space below, position above
+          vertical = 'bottom-full';
+        }
+        
+        setDropdownPosition({ horizontal, vertical });
+      };
+      
+      // Calculate after a small delay to ensure dropdown is rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(calculatePosition);
+      });
+      
+      // Recalculate on window resize
+      const handleResize = () => {
+        calculatePosition();
+      };
+      
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('scroll', handleResize, true);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('scroll', handleResize, true);
+      };
+    }
+  }, [isOpen]);
 
   // Save preference to localStorage when it changes
   useEffect(() => {
@@ -142,12 +207,17 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-2 rounded border border-gray-300 text-sm bg-white text-gray-800 cursor-pointer min-w-[200px] text-left"
+        className="px-2 sm:px-3 py-2 rounded border border-gray-300 text-xs sm:text-sm bg-white text-gray-800 cursor-pointer min-w-0 sm:min-w-[200px] text-left truncate"
       >
         {formatDateRange() || placeholder}
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg p-4 z-50 flex flex-col gap-3 min-w-[300px]">
+        <div 
+          ref={dropdownRef}
+          className={`absolute ${dropdownPosition.vertical} ${dropdownPosition.horizontal} ${
+            dropdownPosition.vertical === 'top-full' ? 'mt-1' : 'mb-1'
+          } bg-white border border-gray-300 rounded shadow-lg p-3 sm:p-4 z-50 flex flex-col gap-2 sm:gap-3 min-w-0 sm:min-w-[300px] max-w-[calc(100vw-24px)]`}
+        >
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-800 whitespace-nowrap">From:</label>
             <input
@@ -184,10 +254,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             <label
               htmlFor="apply-instantly"
               className="text-sm text-gray-800 cursor-pointer select-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleApplyInstantly({ target: { checked: !applyInstantly } } as React.ChangeEvent<HTMLInputElement>);
-              }}
+              onClick={(e) => e.stopPropagation()}
             >
               Apply changes instantly
             </label>

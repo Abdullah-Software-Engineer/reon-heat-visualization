@@ -38,7 +38,7 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
     // Truncate labels for mobile to prevent cutting
     const truncatedPieces = pieces.map(piece => ({
       ...piece,
-      label: piece.label.length > 15 ? piece.label.substring(0, 15) + '...' : piece.label
+      label: piece.label.length > 12 ? piece.label.substring(0, 12) + '..' : piece.label
     }));
 
     return {
@@ -47,20 +47,20 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
       max: 13,
       pieces: truncatedPieces,
       left: 'center',
-      top: 'top',
-      orient: 'horizontal' as const, // Keep horizontal but with better spacing
-      itemWidth: 8,
-      itemHeight: 8,
-      itemGap: 6, // Reduced gap for mobile
+      top: 0,
+      orient: 'horizontal' as const,
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 4,
       textStyle: { 
         color: '#333', 
-        fontSize: 9, // Smaller font for mobile
+        fontSize: 10,
       },
       showLabel: true,
-      // Add padding to prevent cutting
-      padding: [5, 10, 5, 10],
-      // Invert selection to show selected items
+      padding: [8, 5, 8, 5],
       inverse: false,
+      // Allow legend to wrap to next line on narrow screens
+      formatter: (name: string) => name,
     };
   }
 
@@ -272,14 +272,22 @@ export const createChartOptions = (
     hideDelay: 0 // Close instantly when moving away
   };
 
+  // Mobile-optimized grid with more space for legend
+  const gridConfig = isMobile ? {
+    height: '65%',
+    top: '12%',
+    left: '12%',
+    right: '4%'
+  } : {
+    height: '70%',
+    top: '8%',
+    left: '10%',
+    right: '10%'
+  };
+
   return {
     tooltip: tooltipConfig as any,
-    grid: { 
-      height: '70%', 
-      top: '8%', 
-      left: '10%', 
-      right: '10%' 
-    },
+    grid: gridConfig,
     dataZoom: [
       {
         type: 'inside' as const,

@@ -164,15 +164,42 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
   const isMobile = windowWidth <= 768;
 
   return (
-    <div className={`w-full h-screen ${isMobile ? 'p-2' : 'p-5'}`}>
-      <div className={`flex justify-between items-center mb-1 flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
-        <div className="flex items-center gap-3">
-          <h1 className={`m-0 ${isMobile ? 'text-base' : 'text-lg'} font-medium text-gray-500`}>
+    <div className={`w-full h-screen ${isMobile ? 'px-3 py-4' : 'p-5'}`}>
+      {isMobile ? (
+        <>
+          {/* Mobile: Title centered on its own line */}
+          <h1 className="m-0 text-lg text-center mb-3 font-medium text-gray-500">
             Runtime Report 2.0
           </h1>
-        </div>
-        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'} flex-wrap`}>
-          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
+          
+          {/* Mobile: Date picker and Download button - justify-between */}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <DateRangePicker
+              availableDates={allDates}
+              value={dateRange}
+              onChange={setDateRange}
+            />
+            <DownloadButton
+              options={[
+                {
+                  label: 'Download Image',
+                  onDownload: handleDownloadImage,
+                },
+                {
+                  label: 'Download Data',
+                  onDownload: handleDownloadData,
+                },
+              ]}
+            />
+          </div>
+        </>
+      ) : (
+        /* Desktop: Title and controls on same line with justify-between */
+        <div className="flex justify-between items-center mb-1 gap-4">
+          <h1 className="m-0 text-lg font-medium text-gray-500">
+            Runtime Report 2.0
+          </h1>
+          <div className="flex items-center gap-2">
             <DateRangePicker
               availableDates={allDates}
               value={dateRange}
@@ -192,14 +219,16 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
             />
           </div>
         </div>
-      </div>
+      )}
+      
       {/* horizontal line */}
-      <hr className="w-full h-2px text-gray-400 mb-1" />
+      <hr className={`w-full border-gray-300 ${isMobile ? 'mb-2' : 'mb-3'}`} />
+      
       {/* heatmap chart */}
       <ReactECharts
         ref={chartRef}
         option={chartOptions}
-        style={{ height: isMobile ? 'calc(100vh - 150px)' : 'calc(100vh - 200px)', width: '100%' }}
+        style={{ height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 200px)', width: '100%' }}
         opts={{ 
           renderer: 'canvas',
           devicePixelRatio: window.devicePixelRatio || 1

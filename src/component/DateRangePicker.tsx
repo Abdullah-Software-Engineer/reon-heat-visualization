@@ -142,7 +142,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="px-2 py-1.5 rounded border border-gray-300 text-xs sm:text-sm bg-white text-gray-800 cursor-pointer min-w-[160px] sm:min-w-[200px] text-left"
+        className="px-3 py-2 rounded border border-gray-300 text-sm bg-white text-gray-800 cursor-pointer min-w-[200px] text-left"
       >
         {formatDateRange() || placeholder}
       </button>
@@ -184,7 +184,10 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             <label
               htmlFor="apply-instantly"
               className="text-sm text-gray-800 cursor-pointer select-none"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleApplyInstantly({ target: { checked: !applyInstantly } } as React.ChangeEvent<HTMLInputElement>);
+              }}
             >
               Apply changes instantly
             </label>

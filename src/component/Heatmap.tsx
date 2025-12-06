@@ -11,7 +11,6 @@ import { createChartOptions } from '../utils';
 import DateRangePicker, { type DateRange } from './DateRangePicker';
 import DownloadButton from './DownloadButton';
 import Loader from './Loader';
-import Legend from './Legend';
 
 interface HeatmapProps {
   enableAnimation?: boolean;
@@ -165,14 +164,14 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
   const isMobile = windowWidth <= 768;
 
   return (
-    <div className={`w-full h-screen ${isMobile ? 'p-1.5' : 'p-4'}`}>
-      <div className={`flex justify-between items-center ${isMobile ? 'mb-0.5' : 'mb-2'} flex-wrap ${isMobile ? 'gap-1.5' : 'gap-3'}`}>
-        <div className="flex items-center gap-2">
-          <h1 className={`m-0 ${isMobile ? 'text-sm' : 'text-lg'} font-medium text-gray-500`}>
+    <div className={`w-full h-screen ${isMobile ? 'p-2' : 'p-5'}`}>
+      <div className={`flex justify-between items-center mb-1 flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
+        <div className="flex items-center gap-3">
+          <h1 className={`m-0 ${isMobile ? 'text-base' : 'text-lg'} font-medium text-gray-500`}>
             Runtime Report 2.0
           </h1>
         </div>
-        <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-3'} flex-wrap`}>
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'} flex-wrap`}>
           <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
             <DateRangePicker
               availableDates={allDates}
@@ -195,14 +194,12 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
         </div>
       </div>
       {/* horizontal line */}
-      <hr className={`w-full ${isMobile ? 'h-px mb-0.5' : 'h-0.5 mb-1'} text-gray-400`} />
-      {/* Custom legend for mobile */}
-      {isMobile && data && <Legend data={data} />}
+      <hr className="w-full h-2px text-gray-400 mb-1" />
       {/* heatmap chart */}
       <ReactECharts
         ref={chartRef}
         option={chartOptions}
-        style={{ height: isMobile ? 'calc(100vh - 140px)' : 'calc(100vh - 180px)', width: '100%' }}
+        style={{ height: isMobile ? 'calc(100vh - 150px)' : 'calc(100vh - 200px)', width: '100%' }}
         opts={{ 
           renderer: 'canvas',
           devicePixelRatio: window.devicePixelRatio || 1

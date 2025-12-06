@@ -43,7 +43,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       trigger={
         <button
           type="button"
-          className={`w-8 h-8 sm:w-10 sm:h-10 rounded border border-gray-300 bg-white flex items-center justify-center cursor-pointer transition-colors duration-250 hover:bg-gray-50 ${className}`}
+          className={`w-10 h-10 rounded border border-gray-300 bg-white flex items-center justify-center cursor-pointer transition-colors duration-250 hover:bg-gray-50 ${className}`}
           aria-label="Download options"
           title="Download"
         >

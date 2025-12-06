@@ -259,7 +259,7 @@ export const createChartOptions = (
     textStyle: { color: '#fff' },
     formatter: createTooltipFormatter(data, timeSlots, filteredDates) as any,
     trigger: 'item' as const,
-    enterable: true, // Allow mouse to enter tooltip on desktop
+    enterable: false, // Don't allow mouse to enter tooltip - hide when mouse moves away
     confine: true, // Keep tooltip within viewport
     hideDelay: 0 // Close instantly when moving away
   };

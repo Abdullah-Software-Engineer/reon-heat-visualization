@@ -10,9 +10,18 @@ const ALLOWED_SOURCES = [
 ] as const;
 
 /**
+ * Detects if the current device is mobile
+ */
+const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+/**
  * Creates visual map configuration for the heatmap chart
  */
 export const createVisualMap = (data: RuntimeDataResponse) => {
+  const isMobile = isMobileDevice();
   const pieces = data.meta.sources
     .filter((source): source is RuntimeSource =>
       ALLOWED_SOURCES.includes(source.display as (typeof ALLOWED_SOURCES)[number])
@@ -24,6 +33,38 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
       label: source.display,
     }));
 
+  // Mobile-specific adjustments
+  if (isMobile) {
+    // Truncate labels for mobile to prevent cutting
+    const truncatedPieces = pieces.map(piece => ({
+      ...piece,
+      label: piece.label.length > 15 ? piece.label.substring(0, 15) + '...' : piece.label
+    }));
+
+    return {
+      type: 'piecewise' as const,
+      min: 0,
+      max: 13,
+      pieces: truncatedPieces,
+      left: 'center',
+      top: 'top',
+      orient: 'horizontal' as const, // Keep horizontal but with better spacing
+      itemWidth: 8,
+      itemHeight: 8,
+      itemGap: 6, // Reduced gap for mobile
+      textStyle: { 
+        color: '#333', 
+        fontSize: 9, // Smaller font for mobile
+      },
+      showLabel: true,
+      // Add padding to prevent cutting
+      padding: [5, 10, 5, 10],
+      // Invert selection to show selected items
+      inverse: false,
+    };
+  }
+
+  // Desktop configuration
   return {
     type: 'piecewise' as const,
     min: 0,
@@ -87,16 +128,30 @@ const createSmartTooltipPosition = () => {
       posX = Math.max(tooltipPadding, Math.min(viewWidth - tooltipWidth - tooltipPadding, x - tooltipWidth / 2));
     }
     
-    // Vertical positioning: prefer bottom, fallback to top
-    if (spaceBottom >= tooltipHeight + cursorPadding) {
-      // Position below cursor
+    // Vertical positioning: 
+    // For upper cells (top 35% of viewport), always show below
+    // For mid and bottom cells, prefer bottom, fallback to top
+    const isUpperCell = y < viewHeight * 0.35;
+    
+    if (isUpperCell) {
+      // For upper cells, always position below
       posY = y + cursorPadding;
-    } else if (spaceTop >= tooltipHeight + cursorPadding) {
-      // Position above cursor
-      posY = y - tooltipHeight - cursorPadding;
+      // If there's not enough space below, position it as low as possible while staying below
+      if (spaceBottom < tooltipHeight + cursorPadding) {
+        posY = Math.min(y + cursorPadding, viewHeight - tooltipHeight - tooltipPadding);
+      }
     } else {
-      // Center vertically if neither side has enough space
-      posY = Math.max(tooltipPadding, Math.min(viewHeight - tooltipHeight - tooltipPadding, y - tooltipHeight / 2));
+      // For mid and bottom cells, prefer bottom, fallback to top
+      if (spaceBottom >= tooltipHeight + cursorPadding) {
+        // Position below cursor
+        posY = y + cursorPadding;
+      } else if (spaceTop >= tooltipHeight + cursorPadding) {
+        // Position above cursor
+        posY = y - tooltipHeight - cursorPadding;
+      } else {
+        // Center vertically if neither side has enough space
+        posY = Math.max(tooltipPadding, Math.min(viewHeight - tooltipHeight - tooltipPadding, y - tooltipHeight / 2));
+      }
     }
     
     // Ensure tooltip stays within viewport bounds
@@ -156,25 +211,69 @@ export const createChartOptions = (
   heatmapData: HeatmapDataPoint[],
   enableAnimation: boolean = false
 ): EChartsOption => {
+  const isMobile = isMobileDevice();
   const visualMap = createVisualMap(data);
   const seriesData: Array<[number, number, number]> = heatmapData.map(
     (item) => [item.timeIndex, item.dateIndex, item.value]
   );
   const shouldAnimate = enableAnimation && heatmapData.length < 10000;
 
+  // Mobile-optimized tooltip configuration
+  const tooltipConfig = isMobile ? {
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 2,
+    textStyle: { color: '#fff', fontSize: 12 },
+    formatter: createTooltipFormatter(data, timeSlots, filteredDates) as any,
+    trigger: 'item' as const,
+    enterable: false, // Disable on mobile for better touch interaction
+    confine: true, // Keep tooltip within viewport
+    hideDelay: 0, // Close instantly when moving away
+    showDelay: 0, // Show immediately on touch
+    // Better positioning for mobile - show below for upper cells
+    position: function (point: [number, number], params: any, dom: HTMLElement, rect: any, size: any) {
+      const [x, y] = point;
+      const [contentWidth, contentHeight] = size.contentSize;
+      const [viewWidth, viewHeight] = size.viewSize;
+      
+      // Center the tooltip horizontally on mobile
+      const tooltipX = Math.max(10, Math.min(viewWidth - contentWidth - 10, x - contentWidth / 2));
+      
+      // For upper cells (top 35% of viewport), always show below
+      // For mid and bottom cells, show above (to avoid blocking the cell)
+      const isUpperCell = y < viewHeight * 0.35;
+      const cursorPadding = 15;
+      
+      let tooltipY: number;
+      if (isUpperCell) {
+        // For upper cells, position below the touch point
+        tooltipY = y + cursorPadding;
+        // Ensure it stays within viewport
+        tooltipY = Math.min(tooltipY, viewHeight - contentHeight - 10);
+      } else {
+        // For mid and bottom cells, position above the touch point
+        tooltipY = y - contentHeight - cursorPadding;
+        // Ensure it stays within viewport
+        tooltipY = Math.max(10, tooltipY);
+      }
+      
+      return [tooltipX, tooltipY];
+    }
+  } : {
+    position: createSmartTooltipPosition() as any,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    textStyle: { color: '#fff' },
+    formatter: createTooltipFormatter(data, timeSlots, filteredDates) as any,
+    trigger: 'item' as const,
+    enterable: true, // Allow mouse to enter tooltip on desktop
+    confine: true, // Keep tooltip within viewport
+    hideDelay: 0 // Close instantly when moving away
+  };
+
   return {
-    tooltip: {
-      position: createSmartTooltipPosition() as any,
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      borderColor: 'rgba(255,255,255,0.2)',
-      borderWidth: 1,
-      textStyle: { color: '#fff' },
-      formatter: createTooltipFormatter(data, timeSlots, filteredDates) as any,
-      trigger: 'item' as const,
-      enterable: true, // Allow mouse to enter tooltip
-      confine: true, // Keep tooltip within viewport
-      hideDelay: 100 // Small delay before hiding
-    },
+    tooltip: tooltipConfig as any,
     grid: { 
       height: '70%', 
       top: '8%', 

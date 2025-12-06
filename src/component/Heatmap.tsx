@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useRuntimeData } from '../hooks';
 import {
@@ -19,6 +19,7 @@ interface HeatmapProps {
 const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
   const { data, loading, error } = useRuntimeData();
   const chartRef = useRef<ReactECharts>(null);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1920);
 
   const allDates = useMemo(() => (data ? extractDates(data) : []), [data]);
 
@@ -39,10 +40,30 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
     [data, filteredDates]
   );
 
+  // Handle window resize to update chart on mobile/desktop switch
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      // Force chart resize
+      const chart = chartRef.current?.getEchartsInstance();
+      if (chart) {
+        chart.resize();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   const chartOptions = useMemo(() => {
     if (!data) return {};
     return createChartOptions(data, timeSlots, filteredDates, heatmapData, enableAnimation);
-  }, [data, timeSlots, filteredDates, heatmapData, enableAnimation]);
+  }, [data, timeSlots, filteredDates, heatmapData, enableAnimation, windowWidth]);
 
   const handleDownloadImage = useCallback(() => {
     const chart = chartRef.current?.getEchartsInstance();
@@ -140,16 +161,18 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
     );
   }
 
+  const isMobile = windowWidth <= 768;
+
   return (
-    <div className="w-full h-screen p-5">
-      <div className="flex justify-between items-center mb-1 flex-wrap gap-4">
+    <div className={`w-full h-screen ${isMobile ? 'p-2' : 'p-5'}`}>
+      <div className={`flex justify-between items-center mb-1 flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
         <div className="flex items-center gap-3">
-          <h1 className="m-0 text-lg font-medium text-gray-500">
+          <h1 className={`m-0 ${isMobile ? 'text-base' : 'text-lg'} font-medium text-gray-500`}>
             Runtime Report 2.0
           </h1>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'} flex-wrap`}>
+          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
             <DateRangePicker
               availableDates={allDates}
               value={dateRange}
@@ -176,7 +199,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ enableAnimation = true }) => {
       <ReactECharts
         ref={chartRef}
         option={chartOptions}
-        style={{ height: 'calc(100vh - 200px)', width: '100%' }}
+        style={{ height: isMobile ? 'calc(100vh - 150px)' : 'calc(100vh - 200px)', width: '100%' }}
         opts={{ 
           renderer: 'canvas',
           devicePixelRatio: window.devicePixelRatio || 1

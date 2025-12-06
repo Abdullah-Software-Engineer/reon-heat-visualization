@@ -35,10 +35,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return saved !== null ? saved === 'true' : true;
   });
   const [tempDateRange, setTempDateRange] = useState<DateRange>(value);
-  const [dropdownPosition, setDropdownPosition] = useState<{ horizontal: string; vertical: string }>({
-    horizontal: 'left-0',
-    vertical: 'top-full',
-  });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [isVisible, setIsVisible] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -82,31 +80,33 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         const viewportHeight = window.innerHeight;
         
         // Calculate horizontal position
-        let horizontal = 'left-0';
-        const spaceOnRight = viewportWidth - pickerRect.right;
-        const spaceOnLeft = pickerRect.left;
+        let left = pickerRect.left;
         const dropdownWidth = dropdownRect.width || 300; // fallback to min-width
         
-        if (spaceOnRight < dropdownWidth && spaceOnLeft > spaceOnRight) {
-          // Not enough space on right, align to right edge
-          horizontal = 'right-0';
-        } else if (pickerRect.left + dropdownWidth > viewportWidth) {
-          // Would overflow, align to right edge
-          horizontal = 'right-0';
+        // Ensure dropdown stays within viewport
+        if (left + dropdownWidth > viewportWidth) {
+          left = viewportWidth - dropdownWidth - 12;
+        }
+        if (left < 12) {
+          left = 12;
         }
         
         // Calculate vertical position
-        let vertical = 'top-full';
+        let top = pickerRect.bottom + 4; // mt-1 equivalent
+        const dropdownHeight = dropdownRect.height || 200; // estimated height
         const spaceBelow = viewportHeight - pickerRect.bottom;
         const spaceAbove = pickerRect.top;
-        const dropdownHeight = dropdownRect.height || 200; // estimated height
         
         if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
           // Not enough space below, position above
-          vertical = 'bottom-full';
+          top = pickerRect.top - dropdownHeight - 4;
         }
         
-        setDropdownPosition({ horizontal, vertical });
+        setDropdownPosition({ top, left });
+        // Small delay to ensure position is set before showing
+        requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
       };
       
       // Calculate after a small delay to ensure dropdown is rendered
@@ -126,6 +126,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('scroll', handleResize, true);
       };
+    } else {
+      setIsVisible(false);
     }
   }, [isOpen]);
 
@@ -214,9 +216,16 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       {isOpen && (
         <div 
           ref={dropdownRef}
-          className={`absolute ${dropdownPosition.vertical} ${dropdownPosition.horizontal} ${
-            dropdownPosition.vertical === 'top-full' ? 'mt-1' : 'mb-1'
-          } bg-white border border-gray-300 rounded shadow-lg p-3 sm:p-4 z-50 flex flex-col gap-2 sm:gap-3 min-w-0 sm:min-w-[300px] max-w-[calc(100vw-24px)]`}
+          style={{
+            position: 'fixed',
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'scale(1)' : 'scale(0.95)',
+            transition: 'opacity 150ms ease-out, transform 150ms ease-out',
+            pointerEvents: isVisible ? 'auto' : 'none',
+          }}
+          className={`bg-white border border-gray-300 rounded shadow-lg p-3 sm:p-4 z-50 flex flex-col gap-2 sm:gap-3 min-w-0 sm:min-w-[300px] max-w-[calc(100vw-24px)]`}
         >
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-800 whitespace-nowrap">From:</label>

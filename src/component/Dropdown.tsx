@@ -1,4 +1,4 @@
-import React, { useRef, type ReactNode } from 'react';
+import React, { useRef, useState, useEffect, type ReactNode } from 'react';
 import { useClickOutside } from '../hooks';
 
 export interface DropdownOption {
@@ -43,12 +43,66 @@ const Dropdown: React.FC<DropdownProps> = ({
   optionClassName = '',
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [isVisible, setIsVisible] = useState(false);
 
   useClickOutside(dropdownRef, () => {
     if (isOpen) {
       onToggle(false);
     }
   });
+
+  // Calculate position when dropdown opens
+  useEffect(() => {
+    if (isOpen && triggerRef.current && menuRef.current) {
+      const calculatePosition = () => {
+        if (!triggerRef.current || !menuRef.current) return;
+        
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const menuRect = menuRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let left = triggerRect.left;
+        let top = triggerRect.bottom + 4; // mt-1 equivalent (4px)
+        
+        // Adjust horizontal position based on placement
+        if (placement === 'right') {
+          left = triggerRect.right - (menuRect.width || 160);
+        } else if (placement === 'center') {
+          left = triggerRect.left + (triggerRect.width / 2) - ((menuRect.width || 160) / 2);
+        }
+        
+        // Ensure dropdown stays within viewport
+        if (left + (menuRect.width || 160) > viewportWidth) {
+          left = viewportWidth - (menuRect.width || 160) - 8;
+        }
+        if (left < 8) {
+          left = 8;
+        }
+        
+        // Check if there's enough space below, otherwise position above
+        if (top + (menuRect.height || 200) > viewportHeight && triggerRect.top > (menuRect.height || 200)) {
+          top = triggerRect.top - (menuRect.height || 200) - 4;
+        }
+        
+        setPosition({ top, left });
+        // Small delay to ensure position is set before showing
+        requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      };
+      
+      // Calculate position after a frame to ensure menu is rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(calculatePosition);
+      });
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen, placement]);
 
   const handleOptionClick = (option: DropdownOption) => {
     if (option.disabled) return;
@@ -62,26 +116,24 @@ const Dropdown: React.FC<DropdownProps> = ({
     onToggle(false);
   };
 
-  const getPlacementClasses = () => {
-    switch (placement) {
-      case 'right':
-        return 'right-0';
-      case 'center':
-        return 'left-1/2 -translate-x-1/2';
-      case 'left':
-      default:
-        return 'left-0';
-    }
-  };
-
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      <div onClick={() => onToggle(!isOpen)} className="cursor-pointer">
+      <div ref={triggerRef} onClick={() => onToggle(!isOpen)} className="cursor-pointer">
         {trigger}
       </div>
       {isOpen && (
         <div
-          className={`absolute top-full mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 min-w-[160px] ${getPlacementClasses()} ${menuClassName}`}
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'scale(1)' : 'scale(0.95)',
+            transition: 'opacity 150ms ease-out, transform 150ms ease-out',
+            pointerEvents: isVisible ? 'auto' : 'none',
+          }}
+          className={`bg-white border border-gray-300 rounded shadow-lg z-50 min-w-[160px] ${menuClassName}`}
         >
           {options.map((option, index) => {
             if (option.divider) {

@@ -35,32 +35,13 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
 
   // Mobile-specific adjustments
   if (isMobile) {
-    // Truncate labels for mobile to prevent cutting
-    const truncatedPieces = pieces.map(piece => ({
-      ...piece,
-      label: piece.label.length > 15 ? piece.label.substring(0, 15) + '...' : piece.label
-    }));
-
+    // Hide the built-in legend on mobile - we'll use a custom component instead
     return {
       type: 'piecewise' as const,
       min: 0,
       max: 13,
-      pieces: truncatedPieces,
-      left: 'center',
-      top: 'top',
-      orient: 'horizontal' as const, // Keep horizontal but with better spacing
-      itemWidth: 8,
-      itemHeight: 8,
-      itemGap: 6, // Reduced gap for mobile
-      textStyle: { 
-        color: '#333', 
-        fontSize: 9, // Smaller font for mobile
-      },
-      showLabel: true,
-      // Add padding to prevent cutting
-      padding: [5, 10, 5, 10],
-      // Invert selection to show selected items
-      inverse: false,
+      pieces,
+      show: false, // Hide the built-in legend on mobile
     };
   }
 
@@ -275,10 +256,11 @@ export const createChartOptions = (
   return {
     tooltip: tooltipConfig as any,
     grid: { 
-      height: '70%', 
-      top: '8%', 
-      left: '10%', 
-      right: '10%' 
+      height: isMobile ? '85%' : '80%', 
+      top: isMobile ? '5%' : '5%', 
+      left: isMobile ? '8%' : '8%', 
+      right: isMobile ? '5%' : '8%',
+      bottom: isMobile ? '5%' : '5%'
     },
     dataZoom: [
       {
@@ -308,17 +290,23 @@ export const createChartOptions = (
       splitArea: { show: true },
       axisLabel: {
         interval: 47,
-        rotate: 45,
-        fontSize: 10,
-        formatter: (val: string) => val.split(':')[0] + ':00'
+        rotate: isMobile ? 45 : 45,
+        fontSize: isMobile ? 9 : 10,
+        formatter: (val: string) => val.split(':')[0] + ':00',
+        margin: isMobile ? 4 : 8
       },
-      silent: false
+      silent: false,
+      boundaryGap: true
     },
     yAxis: {
       type: 'category' as const,
       data: filteredDates,
       splitArea: { show: true },
-      axisLabel: { fontSize: 11 }
+      axisLabel: { 
+        fontSize: isMobile ? 10 : 11,
+        margin: isMobile ? 4 : 8
+      },
+      boundaryGap: true
     },
     visualMap,
     animation: shouldAnimate,
@@ -330,6 +318,10 @@ export const createChartOptions = (
         name: 'Runtime Sources',
         type: 'heatmap' as const,
         data: seriesData,
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: 'transparent'
+        },
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
@@ -344,6 +336,9 @@ export const createChartOptions = (
             borderWidth: 2,
             borderColor: '#646cff'
           }
+        },
+        label: {
+          show: false
         }
       }
     ]

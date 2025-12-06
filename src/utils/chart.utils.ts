@@ -33,34 +33,26 @@ export const createVisualMap = (data: RuntimeDataResponse) => {
       label: source.display,
     }));
 
-  // Mobile-specific adjustments
+  // Mobile-specific adjustments - optimized for full label display
   if (isMobile) {
-    // Truncate labels for mobile to prevent cutting
-    const truncatedPieces = pieces.map(piece => ({
-      ...piece,
-      label: piece.label.length > 12 ? piece.label.substring(0, 12) + '..' : piece.label
-    }));
-
     return {
       type: 'piecewise' as const,
       min: 0,
       max: 13,
-      pieces: truncatedPieces,
+      pieces: pieces,
       left: 'center',
       top: 0,
       orient: 'horizontal' as const,
-      itemWidth: 10,
-      itemHeight: 10,
-      itemGap: 4,
+      itemWidth: 8,
+      itemHeight: 8,
+      itemGap: 6,
       textStyle: { 
         color: '#333', 
-        fontSize: 10,
+        fontSize: 8,
       },
       showLabel: true,
-      padding: [8, 5, 8, 5],
+      padding: [8, 2, 8, 2],
       inverse: false,
-      // Allow legend to wrap to next line on narrow screens
-      formatter: (name: string) => name,
     };
   }
 

@@ -231,7 +231,7 @@ export const createChartOptions = (
     hideDelay: 0, // Close instantly when moving away
     showDelay: 0, // Show immediately on touch
     // Better positioning for mobile - show below for upper cells
-    position: function (point: [number, number], params: any, dom: HTMLElement, rect: any, size: any) {
+    position: function (point: [number, number], _params: any, _dom: HTMLElement, _rect: any, size: any) {
       const [x, y] = point;
       const [contentWidth, contentHeight] = size.contentSize;
       const [viewWidth, viewHeight] = size.viewSize;
